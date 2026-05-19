@@ -71,40 +71,60 @@ if [[ -f "$EXISTING_ENV" ]]; then
   EXISTING_TOKEN=$(grep -E '^GITHUB_TOKEN=' "$EXISTING_ENV" | head -1 | cut -d= -f2- || true)
 fi
 
+# Helper: validate a token by hitting the dispatcher repo. Returns 0 on
+# success, prints a useful error and returns non-zero on failure. We don't
+# name the repo in user-facing output — the bootstrap is public.
+validate_token() {
+  local tok="$1" status
+  status=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H "Authorization: Bearer $tok" \
+    -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/$DISPATCHER_REPO")
+  case "$status" in
+    200) return 0 ;;
+    401) echo "✗ GitHub rejected the token (401). Check it's complete + has 'repo' scope." >&2 ;;
+    404) echo "✗ Token doesn't have access to the dispatcher repo. Use one with broader scope." >&2 ;;
+    *)   echo "✗ Unexpected response $status from GitHub." >&2 ;;
+  esac
+  return 1
+}
+
 if [[ -n "$EXISTING_TOKEN" ]]; then
-  echo "Found existing token in $EXISTING_ENV — reusing it."
-  TOKEN="$EXISTING_TOKEN"
-else
-  read -r -s -p "GitHub PAT (hidden): " TOKEN </dev/tty
-  echo
-  # Strip whitespace — easy to introduce when pasting via terminal scrollback.
-  TOKEN="${TOKEN#"${TOKEN%%[![:space:]]*}"}"   # leading
-  TOKEN="${TOKEN%"${TOKEN##*[![:space:]]}"}"   # trailing
-  if [[ -z "$TOKEN" ]]; then
-    echo "no token entered — aborting" >&2
-    exit 1
-  fi
-  # Quick shape check — classic PATs start with ghp_, fine-grained with github_pat_.
-  if [[ "$TOKEN" != ghp_* && "$TOKEN" != github_pat_* && "$TOKEN" != gho_* ]]; then
-    echo "⚠ Token doesn't start with ghp_, gho_, or github_pat_ — looks wrong." >&2
-    echo "  (Length: ${#TOKEN} chars, starts with: ${TOKEN:0:6})" >&2
+  echo "Found existing token in $EXISTING_ENV — verifying..."
+  if validate_token "$EXISTING_TOKEN"; then
+    TOKEN="$EXISTING_TOKEN"
+    echo "✓ Token still works."
+  else
+    echo "  Stored token no longer works — will prompt for a fresh one."
+    EXISTING_TOKEN=""
   fi
 fi
-echo
 
-# ── Verify the token can actually reach the dispatcher repo ────────────────
-echo "Verifying token..."
-http_status=$(curl -s -o /dev/null -w '%{http_code}' \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/$DISPATCHER_REPO")
-
-case "$http_status" in
-  200) echo "✓ Token works." ;;
-  401) echo "✗ Token rejected (401 Unauthorized) — check it has 'repo' scope." >&2; exit 1 ;;
-  404) echo "✗ Repo $DISPATCHER_REPO not found, or your token can't see it." >&2; exit 1 ;;
-  *)   echo "✗ Unexpected response $http_status from GitHub." >&2; exit 1 ;;
-esac
+if [[ -z "${TOKEN:-}" ]]; then
+  echo "Generate a PAT at: https://github.com/settings/tokens/new"
+  echo "  Scopes needed: repo, read:packages"
+  echo
+  while true; do
+    read -r -s -p "GitHub PAT (hidden, Ctrl-C to abort): " TOKEN </dev/tty
+    echo
+    # Strip whitespace from copy-paste mishaps.
+    TOKEN="${TOKEN#"${TOKEN%%[![:space:]]*}"}"
+    TOKEN="${TOKEN%"${TOKEN##*[![:space:]]}"}"
+    if [[ -z "$TOKEN" ]]; then
+      echo "  (empty input — try again)"
+      continue
+    fi
+    if [[ "$TOKEN" != ghp_* && "$TOKEN" != github_pat_* && "$TOKEN" != gho_* ]]; then
+      echo "  ⚠ Doesn't look like a GitHub token (expected ghp_… / github_pat_… / gho_…). Try again."
+      continue
+    fi
+    if validate_token "$TOKEN"; then
+      echo "✓ Token works."
+      break
+    fi
+    echo "  Try a different token."
+  done
+fi
 
 # ── Download + extract dispatcher source ───────────────────────────────────
 
