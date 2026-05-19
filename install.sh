@@ -77,9 +77,17 @@ if [[ -n "$EXISTING_TOKEN" ]]; then
 else
   read -r -s -p "GitHub PAT (hidden): " TOKEN </dev/tty
   echo
+  # Strip whitespace — easy to introduce when pasting via terminal scrollback.
+  TOKEN="${TOKEN#"${TOKEN%%[![:space:]]*}"}"   # leading
+  TOKEN="${TOKEN%"${TOKEN##*[![:space:]]}"}"   # trailing
   if [[ -z "$TOKEN" ]]; then
     echo "no token entered — aborting" >&2
     exit 1
+  fi
+  # Quick shape check — classic PATs start with ghp_, fine-grained with github_pat_.
+  if [[ "$TOKEN" != ghp_* && "$TOKEN" != github_pat_* && "$TOKEN" != gho_* ]]; then
+    echo "⚠ Token doesn't start with ghp_, gho_, or github_pat_ — looks wrong." >&2
+    echo "  (Length: ${#TOKEN} chars, starts with: ${TOKEN:0:6})" >&2
   fi
 fi
 echo
