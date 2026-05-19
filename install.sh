@@ -3,7 +3,7 @@
 #
 # Usage (on a fresh customer box):
 #
-#   curl -fsSL https://raw.githubusercontent.com/PendantAutomation/wxs-installer/main/install.sh | sudo bash
+#   curl -fsSL https://raw.githubusercontent.com/PendantAutomation/wxs-installer/master/install.sh | sudo bash
 #
 # This script:
 #   1. Prompts for the GitHub personal-access token (the dispatcher repo is
@@ -29,7 +29,7 @@ if [[ $EUID -ne 0 ]]; then
 This installer needs to run as root.
 
 Re-run with:
-  curl -fsSL https://raw.githubusercontent.com/PendantAutomation/wxs-installer/main/install.sh | sudo bash
+  curl -fsSL https://raw.githubusercontent.com/PendantAutomation/wxs-installer/master/install.sh | sudo bash
 EOF
   exit 1
 fi

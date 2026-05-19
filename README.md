@@ -10,7 +10,7 @@ prompts for a GitHub personal-access token, then uses it to pull the
 ## Customer-facing one-liner
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/PendantAutomation/wxs-installer/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/PendantAutomation/wxs-installer/master/install.sh | sudo bash
 ```
 
 That's it. The customer is prompted for:
@@ -41,7 +41,7 @@ Example: install a feature branch instead of master:
 
 ```bash
 WXS_DISPATCHER_REF=feature/foo \
-  curl -fsSL https://raw.githubusercontent.com/PendantAutomation/wxs-installer/main/install.sh | sudo -E bash
+  curl -fsSL https://raw.githubusercontent.com/PendantAutomation/wxs-installer/master/install.sh | sudo -E bash
 ```
 
 (Note the `sudo -E` to preserve the env var.)
