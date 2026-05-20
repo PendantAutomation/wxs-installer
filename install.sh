@@ -106,7 +106,7 @@ if [[ -z "${TOKEN:-}" ]]; then
   echo
   while true; do
     read -r -s -p "GitHub PAT (hidden, Ctrl-C to abort): " TOKEN </dev/tty
-    echo
+    echo >/dev/tty  # advance cursor; not captured since TOKEN is assigned directly
     # Strip whitespace from copy-paste mishaps.
     TOKEN="${TOKEN#"${TOKEN%%[![:space:]]*}"}"
     TOKEN="${TOKEN%"${TOKEN##*[![:space:]]}"}"
