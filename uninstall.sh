@@ -66,14 +66,25 @@ rm -f /etc/systemd/system/wxs-dispatcher.service
 systemctl daemon-reload || true
 
 # Caddy bits
+systemctl stop caddy.service 2>/dev/null || true
+systemctl disable caddy.service 2>/dev/null || true
 rm -f /etc/systemd/system/caddy.service.d/wxs.conf
 rmdir /etc/systemd/system/caddy.service.d 2>/dev/null || true
+if [[ -f /etc/systemd/system/caddy.service ]] && \
+   head -1 /etc/systemd/system/caddy.service | grep -q 'Managed by wxs-dispatcher'; then
+  rm -f /etc/systemd/system/caddy.service
+fi
+rm -f /etc/caddy/caddy.env
 rm -f /etc/caddy/conf.d/wxs.conf
 if [[ -f /etc/caddy/Caddyfile.bak.wxs ]]; then
   mv /etc/caddy/Caddyfile.bak.wxs /etc/caddy/Caddyfile
 elif [[ -f /etc/caddy/Caddyfile ]] && head -1 /etc/caddy/Caddyfile | grep -qE 'Managed by wxs-(dispatcher|updater)'; then
   rm /etc/caddy/Caddyfile
 fi
+userdel caddy 2>/dev/null || true
+groupdel caddy 2>/dev/null || true
+rm -rf /var/lib/caddy /var/log/caddy
+systemctl daemon-reload
 
 # Polkit
 rm -f /etc/polkit-1/rules.d/50-wxs.rules
